@@ -14,27 +14,14 @@ plus a confidence score (0-1).
 
 ## Request Flow
 
-```
-Client sends POST /predict
-   { "sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2 }
-        │
-        ▼
-1. VALIDATION
-   - Are all 4 fields present?
-   - Are they all numbers, and positive?
-   - If invalid → return 422 with a clear error message, model never runs
-        │
-        ▼
-2. MODEL
-   - Load the saved model.joblib (once, at startup — not per-request)
-   - Convert the 4 validated numbers into the shape the model expects
-   - Run model.predict() and model.predict_proba()
-        │
-        ▼
-3. RESPONSE
-   - Map the model's numeric class output (0, 1, 2) back to species name
-   - Package as JSON: { "species": "setosa", "confidence": 0.98 }
-   - Return with status 200
+```mermaid
+flowchart TD
+    A[Client sends POST /predict] --> B{Validation}
+    B -- Invalid --> C[Return 422 error]
+    B -- Valid --> D[Load saved model.joblib]
+    D --> E[Run model.predict / predict_proba]
+    E --> F[Map class number to species name]
+    F --> G[Return 200 JSON: species + confidence]
 ```
 
 ## Status
