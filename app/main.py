@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import joblib
 import numpy as np
 from app.models.schemas import PredictionInput
+import uuid
 
 ml_models = {}
 
@@ -21,6 +22,11 @@ SPECIES = ["setosa", "versicolor", "virginica"]
 def root():
     return {"message": "ML API is alive"}
 
+@app.get("/health")
+def health():
+    model_loaded = "iris_model" in ml_models
+    return {"stsatus": "ok", "model_loaded": model_loaded}
+
 @app.post("/predict")
 def predict(input_data: PredictionInput):
 
@@ -33,6 +39,12 @@ def predict(input_data: PredictionInput):
 
     model = ml_models.get("iris_model")
     prediction = model.predict(features)[0]
+    probabilities = model.predict_proba(features)[0]
+    confidence = float(np.max(probabilities))
+
     species = SPECIES[prediction]
 
-    return {"predicted_species": species}
+    return {"predicted_species": species,
+            "confidence": confidence,
+            "request_id": str(uuid.uuid4())
+        }
