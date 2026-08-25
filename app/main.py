@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import joblib
 import numpy as np
+from app.models.schemas import PredictionInput
 
 ml_models = {}
 
@@ -21,19 +22,13 @@ def root():
     return {"message": "ML API is alive"}
 
 @app.post("/predict")
-def predict():
-    sample_input = {
-        "sepal_length": 7.1,
-        "sepal_width": 2.5,
-        "petal_length": 5.4,
-        "petal_width": 2.2
-    }
+def predict(input_data: PredictionInput):
 
     features = np.array([[
-        sample_input["sepal_length"],
-        sample_input["sepal_width"],
-        sample_input["petal_length"],
-        sample_input["petal_width"]
+        input_data.sepal_length,
+        input_data.sepal_width,
+        input_data.petal_length,
+        input_data.petal_width
     ]])
 
     model = ml_models.get("iris_model")
