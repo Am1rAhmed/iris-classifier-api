@@ -7,6 +7,8 @@ import joblib
 import numpy as np
 from app.models.schemas import PredictionInput, PredictionOutput
 import uuid
+import time
+from app.logging_config import logger
 
 ml_models = {}
 MODEL_VERSION = "1.0.0"
@@ -14,7 +16,7 @@ MODEL_VERSION = "1.0.0"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ml_models["iris_model"] = joblib.load("ml/saved_model/model.joblib")
-    print("Model loaded successfully")
+    logger.info("Model loaded successfully")
     yield
     ml_models.clear()
 
@@ -48,7 +50,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    print(f"Unhandled error: {exc}")  # log internally
+    logger.info(f"Unhandled error: {exc}")  # log internally
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred"}
@@ -66,7 +68,9 @@ def health():
     return {"status": "ok", "model_loaded": model_loaded}
 
 @app.post("/predict", response_model=PredictionOutput)
-def predict(input_data: PredictionInput):
+def predict(input_data: PredictionInput, request: Request):
+    request_id = request.state.request_id
+
     if "iris_model" not in ml_models:
         raise ModelNotLoadedError
 
@@ -82,16 +86,33 @@ def predict(input_data: PredictionInput):
         prediction = model.predict(features)[0]
         probabilities = model.predict_proba(features)[0]
         confidence = float(np.max(probabilities))
-
         species = SPECIES[prediction]
+
+        logger.info(f"request_id={request_id} prediction={species} confidence={confidence:.4f}")
 
         return PredictionOutput(
             prediction=species,
-            confidence=confidence,
+            confidence=round(confidence, 4),
             model_version=MODEL_VERSION,
-            request_id=str(uuid.uuid4())
+            request_id=request_id
         )
 
     except Exception as e:
-        print(f"Prediction failed: {e}")
+        logger.error(f"request_id={request_id} prediction_failed error={e}")
         raise HTTPException(status_code=500, detail="Prediction failed")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    logger.info(
+        f"request_id={request_id} method={request.method} path={request.url.path} "
+        f"status={response.status_code} duration={duration:.4f}s"
+    )
+    return response
