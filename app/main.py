@@ -9,6 +9,7 @@ from app.models.schemas import PredictionInput, PredictionOutput
 import uuid
 import time
 from app.logging_config import logger
+from app.routers.v1 import router as v1_router, ModelNotLoadedError
 
 ml_models = {}
 MODEL_VERSION = "1.0.0"
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
     ml_models.clear()
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(v1_router)
 
 class ModelNotLoadedError(Exception):
     """Raise when a prediction is attempted but the model isn't loaded."""
@@ -61,45 +63,6 @@ SPECIES = ["setosa", "versicolor", "virginica"]
 @app.get("/")
 def root():
     return {"message": "ML API is alive"}
-
-@app.get("/health")
-def health():
-    model_loaded = "iris_model" in ml_models
-    return {"status": "ok", "model_loaded": model_loaded}
-
-@app.post("/predict", response_model=PredictionOutput)
-def predict(input_data: PredictionInput, request: Request):
-    request_id = request.state.request_id
-
-    if "iris_model" not in ml_models:
-        raise ModelNotLoadedError
-
-    try:
-        features = np.array([[
-            input_data.sepal_length,
-            input_data.sepal_width,
-            input_data.petal_length,
-            input_data.petal_width
-        ]])
-
-        model = ml_models.get("iris_model")
-        prediction = model.predict(features)[0]
-        probabilities = model.predict_proba(features)[0]
-        confidence = float(np.max(probabilities))
-        species = SPECIES[prediction]
-
-        logger.info(f"request_id={request_id} prediction={species} confidence={confidence:.4f}")
-
-        return PredictionOutput(
-            prediction=species,
-            confidence=round(confidence, 4),
-            model_version=MODEL_VERSION,
-            request_id=request_id
-        )
-
-    except Exception as e:
-        logger.error(f"request_id={request_id} prediction_failed error={e}")
-        raise HTTPException(status_code=500, detail="Prediction failed")
 
 
 @app.middleware("http")
