@@ -3,6 +3,8 @@ import numpy as np
 import uuid
 from app.models.schemas import PredictionInput, PredictionOutput
 from app.logging_config import logger
+from app.models.schemas import PredictionInput, PredictionOutput, PredictionBatchInput, PredictionBatchOutput
+import time
 
 router = APIRouter(prefix="/api/v1")
 
@@ -69,4 +71,59 @@ def predict(input_data: PredictionInput, request: Request):
 # change v1's contract for existing clients. Instead I'd create a new
 # PredictionOutputV2(PredictionOutput) schema (or a separate schema entirely)
 # with the extra field, and a separate v2 router file (app/routers/v2.py)
-# with its own /predict endpoint using that new schema. v1 stays byte-for-byte identical. 
+# with its own /predict endpoint using that new schema. v1 stays byte-for-byte identical.
+
+
+@router.post("/predict-batch", response_model=PredictionBatchOutput)
+def predict_batch(batch_input: PredictionBatchInput, request: Request):
+    ml_models = get_ml_models()
+    request_id = request.state.request_id
+
+    if "iris_model" not in ml_models:
+        raise ModelNotLoadedError
+
+    start_time = time.time()
+    try:
+        features = np.array([
+            [row.sepal_length, row.sepal_width, row.petal_length, row.petal_width]
+            for row in batch_input.inputs
+        ])
+
+        model = ml_models["iris_model"]
+
+        # Single call on the whole batch — not a loop calling predict() per row
+        predictions = model.predict(features)
+        probabilities = model.predict_proba(features)
+
+        results = []
+        for pred, probs in zip(predictions, probabilities):
+            results.append(PredictionOutput(
+                prediction=SPECIES[pred],
+                confidence=round(float(np.max(probs)), 4),
+                model_version=MODEL_VERSION,
+                request_id=request_id
+            ))
+
+        duration = time.time() - start_time
+        logger.info(
+            f"request_id={request_id} batch_size={len(batch_input.inputs)} "
+            f"batch_prediction_success duration={duration:.4f}s"
+        )
+
+        return PredictionBatchOutput(predictions=results)
+
+    except Exception as e:
+        logger.error(f"request_id={request_id} batch_prediction_failed error={e}")
+        raise HTTPException(status_code=500, detail="Batch prediction failed")
+
+
+@router.get("/model-info")
+def model_info():
+    return {
+        "model_type": "RandomForestClassifier",
+        "model_version": MODEL_VERSION,
+        "training_date": "2026-08-18",  
+        "features": ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+        "classes": SPECIES
+    }
+ 
