@@ -10,18 +10,19 @@ import uuid
 import time
 from app.logging_config import logger
 from app.routers.v1 import router as v1_router, ModelNotLoadedError
+from app.config import settings
 
 ml_models = {}
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = settings.MODEL_VERSION
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ml_models["iris_model"] = joblib.load("ml/saved_model/model.joblib")
+    ml_models["iris_model"] = joblib.load(settings.MODEL_PATH)
     logger.info("Model loaded successfully")
     yield
     ml_models.clear()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, title=settings.API_TITLE)
 app.include_router(v1_router)
 
 class ModelNotLoadedError(Exception):

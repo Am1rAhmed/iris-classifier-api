@@ -5,11 +5,12 @@ from app.models.schemas import PredictionInput, PredictionOutput
 from app.logging_config import logger
 from app.models.schemas import PredictionInput, PredictionOutput, PredictionBatchInput, PredictionBatchOutput
 import time
+from app.config import settings
 
 router = APIRouter(prefix="/api/v1")
 
 SPECIES = ["setosa", "versicolor", "virginica"]
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = settings.MODEL_VERSION
 
 
 class ModelNotLoadedError(Exception):
@@ -78,6 +79,12 @@ def predict(input_data: PredictionInput, request: Request):
 def predict_batch(batch_input: PredictionBatchInput, request: Request):
     ml_models = get_ml_models()
     request_id = request.state.request_id
+
+    if len(batch_input.inputs) > settings.MAX_BATCH_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch size {len(batch_input.inputs)} exceeds maximum of {settings.MAX_BATCH_SIZE}"
+        )
 
     if "iris_model" not in ml_models:
         raise ModelNotLoadedError
