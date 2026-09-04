@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List,Dict
 
 class PredictionInput(BaseModel):
     sepal_length: float = Field(..., gt=0, le=10, description="Sepal length in cm")
@@ -10,6 +10,12 @@ class PredictionInput(BaseModel):
 class PredictionOutput(BaseModel):
     prediction: str
     confidence: float
+    model_version: str
+    request_id: str
+
+class PredictionOutputV2(BaseModel):
+    prediction: str
+    probabilities: Dict[str, float]
     model_version: str
     request_id: str
 
