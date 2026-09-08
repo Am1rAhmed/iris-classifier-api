@@ -65,16 +65,6 @@ def predict(input_data: PredictionInput, request: Request):
         raise HTTPException(status_code=500, detail="Prediction failed")
 
 
-# CHALLENGE NOTE (Task 10):
-# If /api/v2/predict needs to return an extra field tomorrow (e.g. full
-# probability distribution across all 3 classes, not just the top one),
-# I would NOT modify PredictionOutput directly, since that would silently
-# change v1's contract for existing clients. Instead I'd create a new
-# PredictionOutputV2(PredictionOutput) schema (or a separate schema entirely)
-# with the extra field, and a separate v2 router file (app/routers/v2.py)
-# with its own /predict endpoint using that new schema. v1 stays byte-for-byte identical.
-
-
 @router.post("/predict-batch", response_model=PredictionBatchOutput)
 def predict_batch(batch_input: PredictionBatchInput, request: Request):
     ml_models = get_ml_models()
