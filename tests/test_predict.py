@@ -1,10 +1,15 @@
+from app.config import settings
+
+API_KEY = settings.API_KEY
+
 def test_predict_valid_input_returns_200(client):
     response = client.post("/api/v1/predict", json={
         "sepal_length": 5.1,
         "sepal_width": 3.5,
         "petal_length": 1.4,
         "petal_width": 0.2
-    })
+    }, 
+    headers={"X-API-Key": API_KEY})
     assert response.status_code == 200
     data = response.json()
     assert data["prediction"] == "setosa"
@@ -16,7 +21,8 @@ def test_predict_missing_field_returns_422(client):
         "sepal_width": 3.5,
         "petal_length": 1.4
         # petal_width missing on purpose
-    })
+    },
+    headers={"X-API-Key": API_KEY})
     assert response.status_code == 422
 
 def test_predict_invalid_type_returns_422(client):
@@ -25,7 +31,8 @@ def test_predict_invalid_type_returns_422(client):
         "sepal_width": 3.5,
         "petal_length": 1.4,
         "petal_width": 0.2
-    })
+    },
+    headers={"X-API-Key": API_KEY})
     assert response.status_code == 422
 
 def test_predict_negative_values_returns_422(client):
@@ -34,7 +41,8 @@ def test_predict_negative_values_returns_422(client):
         "sepal_width": 3.5,
         "petal_length": 1.4,
         "petal_width": 0.2
-    })
+    },
+    headers={"X-API-Key": API_KEY})
     assert response.status_code == 422
 
 def test_predict_batch_oversized_rejected(client):
@@ -43,5 +51,7 @@ def test_predict_batch_oversized_rejected(client):
             {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}
         ] * 100  # assuming MAX_BATCH_SIZE is less than 100
     }
-    response = client.post("/api/v1/predict-batch", json=huge_batch)
+    response = client.post("/api/v1/predict-batch",
+                json=huge_batch,
+                headers={"X-API-Key": API_KEY})
     assert response.status_code == 400

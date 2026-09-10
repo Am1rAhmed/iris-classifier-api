@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List,Dict
 
 class PredictionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid") 
+    
     sepal_length: float = Field(..., gt=0, le=10, description="Sepal length in cm")
     sepal_width: float = Field(..., gt=0, le=10, description="Sepal width in cm")
     petal_length: float = Field(..., gt=0, le=10, description="Petal length in cm")

@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     MAX_BATCH_SIZE: int = 50
     API_TITLE: str = "Iris Classifier API"
     MODEL_VERSION: str = "1.0.0"
+    API_KEY: str = "changeme-in-production"
 
     class Config:
         env_file = ".env"

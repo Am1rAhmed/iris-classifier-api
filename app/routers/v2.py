@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 import numpy as np
 from app.models.schemas import PredictionInput, PredictionOutputV2
 from app.logging_config import logger
 from app.config import settings
-
+from app.dependencies import verify_api_key
 router = APIRouter(prefix="/api/v2")
 
 SPECIES = ["setosa", "versicolor", "virginica"]
@@ -18,7 +18,7 @@ class ModelNotLoadedError(Exception):
     pass
 
 
-@router.post("/predict", response_model=PredictionOutputV2)
+@router.post("/predict", response_model=PredictionOutputV2, dependencies=[Depends(verify_api_key)])
 def predict_v2(input_data: PredictionInput, request: Request):
     ml_models = get_ml_models()
     request_id = request.state.request_id

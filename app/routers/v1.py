@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 import numpy as np
 import uuid
 from app.models.schemas import PredictionInput, PredictionOutput
@@ -6,6 +6,7 @@ from app.logging_config import logger
 from app.models.schemas import PredictionInput, PredictionOutput, PredictionBatchInput, PredictionBatchOutput
 import time
 from app.config import settings
+from app.dependencies import verify_api_key
 
 router = APIRouter(prefix="/api/v1")
 
@@ -29,7 +30,7 @@ def health():
     return {"status": "ok", "model_loaded": model_loaded}
 
 
-@router.post("/predict", response_model=PredictionOutput)
+@router.post("/predict", response_model=PredictionOutput, dependencies=[Depends(verify_api_key)])
 def predict(input_data: PredictionInput, request: Request):
     ml_models = get_ml_models()
     request_id = request.state.request_id

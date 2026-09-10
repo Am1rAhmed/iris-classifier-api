@@ -1,3 +1,7 @@
+from app.config import settings
+
+API_KEY = settings.API_KEY
+
 def test_v1_and_v2_predict_different_shapes(client):
     payload = {
         "sepal_length": 5.1,
@@ -6,8 +10,8 @@ def test_v1_and_v2_predict_different_shapes(client):
         "petal_width": 0.2
     }
 
-    v1_response = client.post("/api/v1/predict", json=payload)
-    v2_response = client.post("/api/v2/predict", json=payload)
+    v1_response = client.post("/api/v1/predict", json=payload, headers={"X-API-Key": API_KEY})
+    v2_response = client.post("/api/v2/predict", json=payload, headers={"X-API-Key": API_KEY})
 
     assert v1_response.status_code == 200
     assert v2_response.status_code == 200
