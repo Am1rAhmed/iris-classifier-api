@@ -7,6 +7,8 @@ from app.models.schemas import PredictionInput, PredictionOutput, PredictionBatc
 import time
 from app.config import settings
 from app.dependencies import verify_api_key
+from prometheus_client import Counter
+from app.metrics import prediction_counter
 
 router = APIRouter(prefix="/api/v1")
 
@@ -50,7 +52,9 @@ def predict(input_data: PredictionInput, request: Request):
         prediction = model.predict(features)[0]
         probabilities = model.predict_proba(features)[0]
         confidence = float(np.max(probabilities))
+
         species = SPECIES[prediction]
+        prediction_counter.labels(species=species, api_version="v1").inc()
 
         logger.info(f"request_id={request_id} prediction={species} confidence={confidence:.4f}")
 

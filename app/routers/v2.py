@@ -4,6 +4,8 @@ from app.models.schemas import PredictionInput, PredictionOutputV2
 from app.logging_config import logger
 from app.config import settings
 from app.dependencies import verify_api_key
+from app.metrics import prediction_counter
+
 router = APIRouter(prefix="/api/v2")
 
 SPECIES = ["setosa", "versicolor", "virginica"]
@@ -40,7 +42,8 @@ def predict_v2(input_data: PredictionInput, request: Request):
 
         species = SPECIES[prediction]
         prob_dict = {SPECIES[i]: round(float(p), 4) for i, p in enumerate(probabilities)}
-
+        prediction_counter.labels(species=species, api_version="v2").inc()
+        
         logger.info(f"request_id={request_id} v2_prediction={species} probabilities={prob_dict}")
 
         return PredictionOutputV2(
