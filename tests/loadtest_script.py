@@ -3,7 +3,7 @@ import httpx
 import time
 from app.config import settings 
 
-URL = settings.API_URL
+URL = "http://127.0.0.1:8000/api/v1/predict"
 HEADERS = {"X-API-Key": settings.API_KEY}
 PAYLOAD = {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}
 NUM_REQUESTS = 100

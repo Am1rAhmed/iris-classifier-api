@@ -73,3 +73,75 @@ container — no image rebuild required.
 ```
 pytest -v
 ```
+
+## Example Requests (curl)
+
+### Health check (no auth required)
+```bash
+curl http://127.0.0.1:8000/api/v1/health
+```
+
+### Single prediction (v1)
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/predict \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
+```
+
+### Single prediction (v2 — returns full probability distribution)
+```bash
+curl -X POST http://127.0.0.1:8000/api/v2/predict \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
+```
+
+### Batch prediction
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/predict-batch \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"inputs": [
+    {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2},
+    {"sepal_length": 6.7, "sepal_width": 3.0, "petal_length": 5.2, "petal_width": 2.3}
+  ]}'
+```
+
+### Model metadata (no auth required)
+```bash
+curl http://127.0.0.1:8000/api/v1/model-info
+```
+
+### Prometheus metrics (no auth required)
+```bash
+curl http://127.0.0.1:8000/metrics
+```
+
+## What I Learned
+
+Building this project taught me that the hard parts of a real API aren't
+the model itself — the Iris classifier was almost trivial — but everything
+around it. A few things that stood out:
+
+- **Order of operations matters.** Auth, input validation, and business
+  logic all run in a specific sequence, and getting that wrong (or not
+  understanding it) breaks tests in confusing ways. Debugging why a test
+  expected a 422 but got a 401 taught me more about how FastAPI actually
+  processes a request than any tutorial did.
+- **Versioning is a discipline, not just a URL prefix.** Keeping /api/v1
+  completely untouched while building /api/v2 forced me to actually think
+  about backward compatibility, not just add features.
+- **Unit tests and load tests catch completely different problems.** My
+  pytest suite passed cleanly, but a basic load test immediately exposed
+  a concurrency bottleneck (99% failure under 100 concurrent requests) that
+  no unit test would ever have caught.
+- **Environment reproducibility is fragile in ways I didn't expect.**
+  A OneDrive-synced project folder silently broke my git repository
+  mid-project, and a Python version mismatch between my local machine and
+  my Dockerfile caused a build failure that had nothing to do with my code.
+  Both taught me to take "works on my machine" much less for granted.
+- **Security has ripple effects.** Adding API key authentication
+  broke several existing tests that had nothing to do with auth, since they
+  simply hadn't been written with a required header in mind. It was a good
+  lesson in how a single change can cascade through a codebase.
