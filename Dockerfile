@@ -11,7 +11,7 @@ COPY . .
 EXPOSE 8000
 
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
 
 # Using 0.0.0.0 instead of 127.0.0.1: inside a container, 127.0.0.1 (localhost)
 # only refers to the container's own internal loopback interface. It would
