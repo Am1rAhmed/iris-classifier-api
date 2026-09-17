@@ -118,6 +118,15 @@ curl http://127.0.0.1:8000/api/v1/model-info
 curl http://127.0.0.1:8000/metrics
 ```
 
+## Independent Extension: Continuous Integration
+
+As an independent addition beyond the guided tasks, this project includes
+a GitHub Actions workflow (`.github/workflows/tests.yml`) that automatically
+installs dependencies, trains the model, and runs the full pytest suite on
+every push and pull request to `main`. This was chosen to demonstrate a
+basic CI practice: catching regressions automatically rather than relying
+on manually remembering to run tests before pushing.
+
 ## What I Learned
 
 Building this project taught me that the hard parts of a real API aren't
